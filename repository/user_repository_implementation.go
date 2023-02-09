@@ -44,7 +44,7 @@ func (repository *userRepositoryImplementation) FindById(ctx context.Context, id
 		rows.Scan(&user.Id, &user.Username, &user.Password)
 		return user, nil
 	} else {
-		return user, errors.New("id" + strconv.Itoa(int(id)) + " not found")
+		return user, errors.New("id " + strconv.Itoa(int(id)) + " not found")
 	}
 }
 
