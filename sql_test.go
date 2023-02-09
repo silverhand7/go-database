@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -215,4 +216,95 @@ func TestExecSqlWithParameters(t *testing.T) {
 	}
 
 	fmt.Println("Success insert new user")
+}
+
+func TestLastInsertedId(t *testing.T) {
+	db := GetConnection()
+	defer db.Close()
+
+	ctx := context.Background()
+
+	username := "hello_world"
+	password := "hello"
+
+	query := "INSERT INTO users(username, password) VALUES(?, ?)"
+	result, err := db.ExecContext(ctx, query, username, password)
+
+	if err != nil {
+		panic(err)
+	}
+
+	insertedId, err := result.LastInsertId() // get last inserted ID
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Success insert new user with ID", insertedId)
+}
+
+func TestPrepareStatement(t *testing.T) {
+	db := GetConnection()
+	defer db.Close()
+
+	ctx := context.Background()
+	query := "INSERT INTO users(username, password) VALUES(?, ?)"
+	statement, err := db.PrepareContext(ctx, query)
+	if err != nil {
+		panic(err)
+	}
+	defer statement.Close()
+
+	for i := 0; i < 10; i++ {
+		username := "username" + strconv.Itoa(i)
+		password := "password" + strconv.Itoa(i)
+
+		result, err := statement.ExecContext(ctx, username, password)
+		if err != nil {
+			panic(err)
+		}
+
+		id, err := result.LastInsertId()
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("User ID", id)
+	}
+}
+
+func TestTransaction(t *testing.T) {
+	db := GetConnection()
+	defer db.Close()
+
+	ctx := context.Background()
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	query := "INSERT INTO users(username, password) VALUES(?, ?)"
+
+	for i := 0; i < 10; i++ {
+		username := "username_" + strconv.Itoa(i)
+		password := "password_" + strconv.Itoa(i)
+
+		result, err := tx.ExecContext(ctx, query, username, password)
+		if err != nil {
+			panic(err)
+		}
+
+		id, err := result.LastInsertId()
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("User ID", id)
+	}
+
+	err = tx.Commit()
+	//err = tx.Rollback()
+	if err != nil {
+		panic(err)
+	}
 }
