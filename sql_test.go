@@ -162,3 +162,57 @@ func TestSqlInjection(t *testing.T) {
 		fmt.Println("Gagal")
 	}
 }
+
+func TestSqlInjectionSafe(t *testing.T) {
+	db := GetConnection()
+	defer db.Close()
+
+	ctx := context.Background()
+
+	// username := "admin"
+	username := "admin'; #" // exploited
+	password := "asdmin"
+
+	// Solve SQL Injection
+	query := "SELECT username FROM users WHERE username = ? AND password = ? LIMIT 1"
+	rows, err := db.QueryContext(ctx, query, username, password)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer rows.Close()
+
+	// this mean to check if record exist
+	if rows.Next() {
+		var username string
+
+		err := rows.Scan(&username)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("Login success", username)
+	} else {
+		fmt.Println("Gagal")
+	}
+}
+
+func TestExecSqlWithParameters(t *testing.T) {
+	db := GetConnection()
+	defer db.Close()
+
+	ctx := context.Background()
+
+	username := "harry"
+	password := "harry"
+
+	query := "INSERT INTO users(username, password) VALUES(?, ?)"
+	_, err := db.ExecContext(ctx, query, username, password)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Success insert new user")
+}
